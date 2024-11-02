@@ -45,7 +45,7 @@ export default function NumberVerifier() {
               <MaterialCommunityIcons
                 name={agree ? 'checkbox-marked' : 'checkbox-blank-outline'}
                 size={24}
-                color={agree ? '#007bff' : '#fff'}
+                color={agree ? 'white' : '#fff'}
               />
             </TouchableOpacity>
             <Text style={styles.checkboxLabel}>
