@@ -11,14 +11,27 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import AppIcon from './../assets/icons/AppIcon'; // Ensure this path is correct
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import axiosInstance from '../utils/axiosInstance'; // Import your axios instance
 
 export default function NumberVerifier() {
   const [number, setNumber] = useState('');
   const [agree, setAgree] = useState(false);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (agree) {
-      console.log('Number:', number);
+      try {
+        // Make a POST request to the checkMobileNumber endpoint
+        console.log('Number:', number);
+        const response = await axiosInstance.post('/user/checkMobileNumber', {
+          mobileNumber: number,
+        });
+        
+        // Log the response from the server
+        console.log('Response:', response.data);
+      } catch (error) {
+        // Handle error (e.g., network issues, server errors)
+        console.error('Error checking mobile number:', error.response?.data || error.message);
+      }
     } else {
       alert('You must agree to the terms and policies.');
     }
