@@ -7,29 +7,32 @@ import {
   View,
   TextInput,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import AppIcon from './../assets/icons/AppIcon'; // Ensure this path matches your project
+import AppIcon from './../assets/icons/AppIcon';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import axiosInstance from './../utils/axiosInstance';
 
 export default function OTPVerification() {
   const [otp, setOtp] = useState(['', '', '', '']);
   const inputs = useRef([]);
+  const navigation = useNavigation();
+  const route = useRoute();
+  
+  const { mobileNumber } = route.params;
 
   const handleOtpChange = (value, index) => {
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
 
-    // Move to next input if current field is filled
     if (value !== '' && index < 3) {
       inputs.current[index + 1].focus();
     }
   };
 
   const handleKeyPress = (e, index) => {
-    // Move to previous input on backspace
     if (e.nativeEvent.key === 'Backspace' && index > 0 && otp[index] === '') {
       inputs.current[index - 1].focus();
     }
@@ -38,10 +41,19 @@ export default function OTPVerification() {
   const handleVerify = async () => {
     const otpString = otp.join('');
     try {
-      // Add your OTP verification API call here
-      console.log('Verifying OTP:', otpString);
+      const response = await axiosInstance.post('/user/verifyOtp', {
+        mobileNumber,
+        otp: otpString,
+      });
+
+      if (response.data.message === 'OTP verified successfully') {
+        navigation.navigate('Register', { mobileNumber });
+      } else {
+        alert('OTP verification failed. Please try again.');
+      }
     } catch (error) {
       console.error('Error verifying OTP:', error);
+      alert('Error verifying OTP. Please try again.');
     }
   };
 
@@ -51,10 +63,14 @@ export default function OTPVerification() {
     <LinearGradient colors={['#324141', '#1a1c1c']} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <TouchableOpacity style={styles.backIcon} onPress={() => navigation.goBack()}>
+            <MaterialCommunityIcons name="arrow-left" size={30} color="#fff" />
+          </TouchableOpacity>
+
           <View style={styles.iconContainer}>
             <AppIcon />
           </View>
-          
+
           <Text style={styles.title}>Verify OTP</Text>
           <Text style={styles.subtitle}>
             Enter the verification code sent to your number
@@ -108,6 +124,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     marginBottom: 150,
+  },
+  backIcon: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    zIndex: 1,
   },
   iconContainer: {
     marginBottom: 20,

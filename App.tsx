@@ -11,7 +11,7 @@ const Stack = createStackNavigator();
 function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="OTPverification"
+      <Stack.Navigator initialRouteName="NumberVerifier"
       screenOptions={{ headerShown: false }}>
         <Stack.Screen
           name="Register"
