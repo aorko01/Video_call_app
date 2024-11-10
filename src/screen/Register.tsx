@@ -56,11 +56,39 @@ export default function RegisterScreen({route, navigation}) {
 
   const handleRegister = async (values, {setSubmitting, setErrors}) => {
     try {
-      const response = await axiosInstance.post('/user/register', {
-        ...values,
-        mobileNumber,
-      });
-      if (response.status === 201) {
+      const formData = new FormData();
+      
+      // Append all text fields
+      formData.append('username', values.username);
+      formData.append('firstName', values.firstName);
+      formData.append('middleName', values.middleName || '');
+      formData.append('lastName', values.lastName);
+      formData.append('dateOfBirth', values.dateOfBirth.toISOString());
+      formData.append('gender', values.gender);
+      formData.append('mobileNumber', mobileNumber);
+
+      // Append profile picture if exists
+      if (profilePicture) {
+        const filename = profilePicture.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : 'image';
+        
+        formData.append('profilePicture', {
+          uri: Platform.OS === 'android' ? profilePicture : profilePicture.replace('file://', ''),
+          name: filename,
+          type,
+        });
+      }
+
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      };
+
+      const response = await axiosInstance.post('/user/register', formData, config);
+      
+      if (response.data.success) {
         navigation.navigate('Home');
       }
     } catch (error) {
@@ -75,21 +103,29 @@ export default function RegisterScreen({route, navigation}) {
       } else {
         alert('Registration failed. Please try again.');
       }
+      console.error('Registration error:', error);
     } finally {
       setSubmitting(false);
     }
   };
 
   const openImagePicker = () => {
-    launchImageLibrary({mediaType: 'photo', quality: 0.5}, response => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorMessage) {
-        console.log('ImagePicker Error: ', response.errorMessage);
-      } else if (response.assets && response.assets.length > 0) {
-        setProfilePicture(response.assets[0].uri);
-      }
-    });
+    launchImageLibrary(
+      {
+        mediaType: 'photo',
+        quality: 0.5,
+        includeBase64: false,
+      },
+      response => {
+        if (response.didCancel) {
+          console.log('User cancelled image picker');
+        } else if (response.errorMessage) {
+          console.log('ImagePicker Error: ', response.errorMessage);
+        } else if (response.assets && response.assets.length > 0) {
+          setProfilePicture(response.assets[0].uri);
+        }
+      },
+    );
   };
 
   return (
@@ -107,7 +143,6 @@ export default function RegisterScreen({route, navigation}) {
               lastName: '',
               dateOfBirth: new Date(2000, 0, 1),
               gender: '',
-              profilePictureUrl: '',
             }}
             validationSchema={RegisterSchema}
             onSubmit={handleRegister}>
