@@ -61,7 +61,7 @@ export default function RegisterScreen({route, navigation}) {
         mobileNumber,
       });
       if (response.status === 201) {
-        navigation.navigate('RegistrationSuccess');
+        navigation.navigate('Home');
       }
     } catch (error) {
       if (error.response?.data?.errors) {
