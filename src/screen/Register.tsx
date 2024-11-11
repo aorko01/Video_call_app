@@ -51,6 +51,7 @@ const formatDate = (date) => {
 
 export default function RegisterScreen({route, navigation}) {
   const {mobileNumber} = route.params;
+  console.log('Mobile number in register:', mobileNumber);
   const [profilePicture, setProfilePicture] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -89,7 +90,7 @@ export default function RegisterScreen({route, navigation}) {
       const response = await axiosInstance.post('/user/register', formData, config);
       
       if (response.data.success) {
-        navigation.navigate('Home');
+        navigation.replace('Home');
       }
     } catch (error) {
       if (error.response?.data?.errors) {

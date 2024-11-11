@@ -21,6 +21,7 @@ export default function OTPVerification() {
   const route = useRoute();
   
   const { mobileNumber } = route.params;
+  console.log('Mobile number:', mobileNumber);
 
   const handleOtpChange = (value, index) => {
     const newOtp = [...otp];

@@ -31,8 +31,8 @@ function App() {
         />
         <Stack.Screen
           name="Home"
-          component={OTPVerification}
-          options={{ title: 'OTP' }}
+          component={Home}
+          options={{ title: 'Home' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
