@@ -13,6 +13,7 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import {Formik} from 'formik';
 import * as Yup from 'yup';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {launchImageLibrary} from 'react-native-image-picker';
@@ -90,7 +91,24 @@ export default function RegisterScreen({route, navigation}) {
       const response = await axiosInstance.post('/user/register', formData, config);
       
       if (response.data.success) {
-        navigation.replace('Home');
+        try {
+          // Save tokens to AsyncStorage
+          await Promise.all([
+            AsyncStorage.setItem('accessToken', response.data.accessToken),
+            AsyncStorage.setItem('refreshToken', response.data.refreshToken),
+            AsyncStorage.setItem('user', JSON.stringify(response.data.user))
+          ]);
+          
+          // Update axios instance with new access token
+          axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`;
+
+          
+          // Navigate to Home screen
+          navigation.replace('Home');
+        } catch (storageError) {
+          console.error('Error saving to AsyncStorage:', storageError);
+          alert('Error saving login information. Please try again.');
+        }
       }
     } catch (error) {
       if (error.response?.data?.errors) {
