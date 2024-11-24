@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -8,178 +8,253 @@ import {
   TouchableOpacity,
   Image,
   StatusBar,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import axiosInstance from '../utils/axiosInstance'; // Adjust the import path according to your file structure
 
-const DUMMY_CHATS = [
-  {
-    id: '1',
-    name: 'John Doe',
-    lastMessage: 'Hey, how are you?',
-    time: '9:45 PM',
-    unread: 2,
-    avatar: null,
-  },
-  {
-    id: '2',
-    name: 'Family Group',
-    lastMessage: 'Mom: Dinner is ready!',
-    time: '7:30 PM',
-    unread: 5,
-    avatar: null,
-  },
-  {
-    id: '3',
-    name: 'Alice Smith',
-    lastMessage: 'The meeting is scheduled for tomorrow',
-    time: '2:15 PM',
-    unread: 0,
-    avatar: null,
-  },
-  {
-    id: '3',
-    name: 'Alice Smith',
-    lastMessage: 'The meeting is scheduled for tomorrow',
-    time: '2:15 PM',
-    unread: 0,
-    avatar: null,
-  },
-  {
-    id: '3',
-    name: 'Alice Smith',
-    lastMessage: 'The meeting is scheduled for tomorrow',
-    time: '2:15 PM',
-    unread: 0,
-    avatar: null,
-  },
-  {
-    id: '3',
-    name: 'Alice Smith',
-    lastMessage: 'The meeting is scheduled for tomorrow',
-    time: '2:15 PM',
-    unread: 0,
-    avatar: null,
-  },
-  {
-    id: '3',
-    name: 'Alice Smith',
-    lastMessage: 'The meeting is scheduled for tomorrow',
-    time: '2:15 PM',
-    unread: 0,
-    avatar: null,
-  },
-  {
-    id: '3',
-    name: 'Alice Smith',
-    lastMessage: 'The meeting is scheduled for tomorrow',
-    time: '2:15 PM',
-    unread: 0,
-    avatar: null,
-  },
-  {
-    id: '3',
-    name: 'Alice Smith',
-    lastMessage: 'The meeting is scheduled for tomorrow',
-    time: '2:15 PM',
-    unread: 0,
-    avatar: null,
-  },
-  {
-    id: '3',
-    name: 'Alice Smith',
-    lastMessage: 'The meeting is scheduled for tomorrow',
-    time: '2:15 PM',
-    unread: 0,
-    avatar: null,
-  },
+const FOCUS_MODES = [
+  { id: '1', title: '30 minutes', icon: 'clock-o' },
+  { id: '2', title: '1 hour', icon: 'hourglass-half' },
+  { id: '3', title: '2 hours', icon: 'hourglass-end' },
+  { id: '4', title: 'Until tomorrow', icon: 'moon-o' },
 ];
 
 export default function HomeScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('chats');
+  const [focusModeVisible, setFocusModeVisible] = useState(false);
+  const [activeFocusMode, setActiveFocusMode] = useState(null);
+  const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const renderChatItem = ({ item }) => (
-    <TouchableOpacity style={styles.chatItem}>
-      <View style={styles.avatarContainer}>
-        {item.avatar ? (
-          <Image source={{ uri: item.avatar }} style={styles.avatar} />
-        ) : (
+  useEffect(() => {
+    fetchConversations();
+  }, []);
+
+  const fetchConversations = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get('/message/conversations');
+      if (response.data.success) {
+        setConversations(response.data.data);
+      } else {
+        setError('Failed to fetch conversations');
+      }
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const renderChatItem = ({ item }) => {
+    const conversationId = item._id.conversationWith;
+    const lastMessage = item.latestMessage;
+    const unreadCount = item.deliveredCount;
+
+    return (
+      <TouchableOpacity 
+        style={styles.chatItem}
+        onPress={() => navigation.navigate('Chat', { conversationId })}
+      >
+        <View style={styles.avatarContainer}>
           <View style={styles.avatarPlaceholder}>
             <Text style={styles.avatarText}>
-              {item.name.charAt(0).toUpperCase()}
+              {conversationId.charAt(0).toUpperCase()}
             </Text>
           </View>
-        )}
-      </View>
-      
-      <View style={styles.chatInfo}>
-        <View style={styles.chatHeader}>
-          <Text style={styles.chatName}>{item.name}</Text>
-          <Text style={styles.chatTime}>{item.time}</Text>
+          <View style={styles.onlineBadge} />
         </View>
-        <View style={styles.chatFooter}>
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.lastMessage}
-          </Text>
-          {item.unread > 0 && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadText}>{item.unread}</Text>
-            </View>
-          )}
+        
+        <View style={styles.chatInfo}>
+          <View style={styles.chatHeader}>
+            <Text style={styles.chatName}>User {conversationId.substring(0, 8)}</Text>
+            <Text style={styles.chatTime}>
+              {formatTimestamp(lastMessage.timestamp)}
+            </Text>
+          </View>
+          <View style={styles.chatFooter}>
+            <Text style={[
+              styles.lastMessage,
+              unreadCount > 0 && styles.lastMessageWithBadge
+            ]} numberOfLines={1}>
+              {lastMessage.messageContent.content}
+            </Text>
+            {unreadCount > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadText}>{unreadCount}</Text>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderFocusModeItem = ({ item }) => (
+    <TouchableOpacity 
+      style={[
+        styles.focusModeItem,
+        activeFocusMode === item.id && styles.focusModeItemActive
+      ]}
+      onPress={() => setActiveFocusMode(item.id)}
+    >
+      <FontAwesome 
+        name={item.icon} 
+        size={24} 
+        color={activeFocusMode === item.id ? '#fff' : '#1c7a76'} 
+      />
+      <Text style={[
+        styles.focusModeText,
+        activeFocusMode === item.id && styles.focusModeTextActive
+      ]}>
+        {item.title}
+      </Text>
     </TouchableOpacity>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1c7a76" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity 
+          style={styles.retryButton}
+          onPress={fetchConversations}
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <LinearGradient colors={['#324141', '#1a1c1c']} style={styles.container}>
+    <LinearGradient 
+      colors={['#1a2634', '#0f141c']} 
+      style={styles.container}
+    >
       <StatusBar barStyle="light-content" />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>WhatsApp</Text>
+          <Text style={styles.headerTitle}>Messages</Text>
           <View style={styles.headerIcons}>
-            <TouchableOpacity style={styles.headerIcon}>
-              <FontAwesome name="plus-circle" size={24} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerIcon}>
-              <FontAwesome name="bell" size={24} color="#fff" />
+            <TouchableOpacity 
+              style={styles.focusButton}
+              onPress={() => setFocusModeVisible(true)}
+            >
+              <FontAwesome 
+                name={activeFocusMode ? 'moon-o' : 'bell'} 
+                size={20} 
+                color={activeFocusMode ? '#1c7a76' : '#fff'} 
+              />
+              {activeFocusMode && (
+                <View style={styles.focusActiveDot} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.tabContainer}>
           <TouchableOpacity 
-            style={[styles.tab, activeTab === 'camera' && styles.activeTab]}
-            onPress={() => setActiveTab('camera')}>
-            <FontAwesome name="camera" size={24} color={activeTab === 'camera' ? '#1c7a76' : '#ccc'} />
-          </TouchableOpacity>
-          <TouchableOpacity 
             style={[styles.tab, activeTab === 'chats' && styles.activeTab]}
-            onPress={() => setActiveTab('chats')}>
-            <Text style={[styles.tabText, activeTab === 'chats' && styles.activeTabText]}>CHATS</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'status' && styles.activeTab]}
-            onPress={() => setActiveTab('status')}>
-            <Text style={[styles.tabText, activeTab === 'status' && styles.activeTabText]}>STATUS</Text>
+            onPress={() => setActiveTab('chats')}
+          >
+            <FontAwesome 
+              name="comments" 
+              size={20} 
+              color={activeTab === 'chats' ? '#1c7a76' : '#8e8e93'} 
+            />
+            <Text style={[styles.tabText, activeTab === 'chats' && styles.activeTabText]}>
+              Chats
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.tab, activeTab === 'calls' && styles.activeTab]}
-            onPress={() => setActiveTab('calls')}>
-            <Text style={[styles.tabText, activeTab === 'calls' && styles.activeTabText]}>CALLS</Text>
+            onPress={() => setActiveTab('calls')}
+          >
+            <FontAwesome 
+              name="phone" 
+              size={20} 
+              color={activeTab === 'calls' ? '#1c7a76' : '#8e8e93'} 
+            />
+            <Text style={[styles.tabText, activeTab === 'calls' && styles.activeTabText]}>
+              Calls
+            </Text>
           </TouchableOpacity>
         </View>
 
         <FlatList
-          data={DUMMY_CHATS}
+          data={conversations}
           renderItem={renderChatItem}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item._id.conversationWith}
           style={styles.chatList}
+          refreshing={loading}
+          onRefresh={fetchConversations}
         />
 
         <TouchableOpacity style={styles.fab}>
-          <FontAwesome name="message" size={24} color="#fff" />
+          <LinearGradient
+            colors={['#24b5b0', '#1c7a76']}
+            style={styles.fabGradient}
+          >
+            <FontAwesome name="plus" size={24} color="#fff" />
+          </LinearGradient>
         </TouchableOpacity>
+
+        <Modal
+          visible={focusModeVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setFocusModeVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Focus Mode</Text>
+                <TouchableOpacity 
+                  style={styles.modalClose}
+                  onPress={() => setFocusModeVisible(false)}
+                >
+                  <FontAwesome name="times" size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.modalSubtitle}>
+                Choose how long you want to pause notifications
+              </Text>
+              <FlatList
+                data={FOCUS_MODES}
+                renderItem={renderFocusModeItem}
+                keyExtractor={item => item.id}
+                style={styles.focusModeList}
+              />
+              <TouchableOpacity 
+                style={styles.applyButton}
+                onPress={() => setFocusModeVisible(false)}
+              >
+                <Text style={styles.applyButtonText}>Apply Focus Mode</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -196,40 +271,62 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   headerTitle: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   headerIcons: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
-  headerIcon: {
-    marginLeft: 20,
+  focusButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  focusActiveDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#1c7a76',
   },
   tabContainer: {
     flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   tab: {
     flex: 1,
-    paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginHorizontal: 8,
+    borderRadius: 12,
   },
   activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#1c7a76',
+    backgroundColor: 'rgba(28, 122, 118, 0.1)',
   },
   tabText: {
-    color: '#ccc',
-    fontSize: 14,
-    fontWeight: '500',
+    color: '#8e8e93',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   activeTabText: {
     color: '#1c7a76',
@@ -240,28 +337,42 @@ const styles = StyleSheet.create({
   chatItem: {
     flexDirection: 'row',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    marginHorizontal: 16,
+    marginVertical: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
   },
   avatarContainer: {
+    position: 'relative',
     marginRight: 16,
   },
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
   avatarPlaceholder: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#1c7a76',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  onlineBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#4CAF50',
+    borderWidth: 2,
+    borderColor: '#0f141c',
+  },
   avatarText: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
   },
   chatInfo: {
@@ -270,53 +381,122 @@ const styles = StyleSheet.create({
   chatHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   chatName: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  chatTime: {
+    color: '#8e8e93',
+    fontSize: 14,
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+  },
+  fabGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#1a2634',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    minHeight: '50%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  modalSubtitle: {
+    color: '#8e8e93',
+    fontSize: 16,
+    marginBottom: 24,
+  },
+  focusModeList: {
+    marginBottom: 24,
+  },
+  focusModeItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(28, 122, 118, 0.1)',
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  focusModeItemActive: {
+    backgroundColor: '#1c7a76',
+  },
+  focusModeText: {
+    color: '#1c7a76',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 16,
+  },
+  focusModeTextActive: {
+    color: '#fff',
+  },
+  applyButton: {
+    backgroundColor: '#1c7a76',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  applyButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
-  chatTime: {
-    color: '#888',
-    fontSize: 12,
-  },
-  chatFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   lastMessage: {
-    color: '#ccc',
-    fontSize: 14,
+    color: '#8e8e93',
+    fontSize: 15,
     flex: 1,
     marginRight: 8,
   },
+  lastMessageWithBadge: {
+    marginRight: 40, // Make space for the badge
+  },
   unreadBadge: {
-    backgroundColor: '#1c7a76',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-  unreadText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  fab: {
     position: 'absolute',
-    right: 16,
-    bottom: 16,
+    right: 0,
+    top: '50%',
+    transform: [{ translateY: -12 }],
     backgroundColor: '#1c7a76',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -324,5 +504,11 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    elevation: 5,
+  },
+  unreadText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

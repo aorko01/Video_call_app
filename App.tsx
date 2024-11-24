@@ -12,7 +12,7 @@ const Stack = createStackNavigator();
 function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="NumberVerifier"
+      <Stack.Navigator initialRouteName="Home"
       screenOptions={{ headerShown: false }}>
         <Stack.Screen
           name="Register"
