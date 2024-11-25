@@ -61,7 +61,7 @@ export default function OTPVerification() {
   const isValid = otp.every(digit => digit !== '');
 
   return (
-    <LinearGradient colors={['#324141', '#1a1c1c']} style={styles.container}>
+    <LinearGradient colors={['#1a2634', '#0f141c']} style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <TouchableOpacity style={styles.backIcon} onPress={() => navigation.goBack()}>

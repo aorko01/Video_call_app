@@ -16,7 +16,6 @@ axiosInstance.interceptors.request.use(
   async (config) => {
     // Get the access token from AsyncStorage
     const accessToken = await AsyncStorage.getItem('accessToken');
-    console.log(accessToken);
 
     // If access token is available, add it to headers
     if (accessToken) {
