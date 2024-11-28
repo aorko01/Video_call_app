@@ -10,10 +10,13 @@ import {
   StatusBar,
   Modal,
   ActivityIndicator,
+  PermissionsAndroid,
+  Platform,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import axiosInstance from '../utils/axiosInstance'; // Adjust the import path according to your file structure
+import Contacts from 'react-native-contacts';
+import axiosInstance from '../utils/axiosInstance';
 
 const FOCUS_MODES = [
   { id: '1', title: '30 minutes', icon: 'clock-o' },
@@ -25,14 +28,23 @@ const FOCUS_MODES = [
 export default function HomeScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('chats');
   const [focusModeVisible, setFocusModeVisible] = useState(false);
+  const [contactListVisible, setContactListVisible] = useState(false);
   const [activeFocusMode, setActiveFocusMode] = useState(null);
   const [conversations, setConversations] = useState([]);
+  const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [contactLoading, setContactLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchConversations();
   }, []);
+
+  useEffect(() => {
+    if (contactListVisible) {
+      requestContactPermission();
+    }
+  }, [contactListVisible]);
 
   const fetchConversations = async () => {
     try {
@@ -50,6 +62,52 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  const requestContactPermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
+          {
+            title: "Contacts Permission",
+            message: "This app needs access to your contacts.",
+            buttonNeutral: "Ask Me Later",
+            buttonNegative: "Cancel",
+            buttonPositive: "OK"
+          }
+        );
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          loadContacts();
+        } else {
+          console.log("Contacts permission denied");
+        }
+      } catch (err) {
+        console.warn(err);
+      }
+    } else {
+      loadContacts();
+    }
+  };
+
+  const loadContacts = () => {
+    setContactLoading(true);
+    Contacts.getAll()
+      .then(contacts => {
+        const formattedContacts = contacts
+          .filter(contact => contact.phoneNumbers.length > 0)
+          .map(contact => ({
+            id: contact.recordID,
+            name: `${contact.givenName} ${contact.familyName}`.trim(),
+            mobileNumber: contact.phoneNumbers[0]?.number || ''
+          }));
+        setContacts(formattedContacts);
+        setContactLoading(false);
+      })
+      .catch(error => {
+        console.log('Error loading contacts', error);
+        setContactLoading(false);
+      });
+  };
+
   const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', {
@@ -57,6 +115,11 @@ export default function HomeScreen({ navigation }) {
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  const handleContactSelect = (mobileNumber) => {
+    setContactListVisible(false);
+    navigation.navigate('Inbox', { mobileNumber });
   };
 
   const renderChatItem = ({ item }) => {
@@ -122,6 +185,23 @@ export default function HomeScreen({ navigation }) {
       ]}>
         {item.title}
       </Text>
+    </TouchableOpacity>
+  );
+
+  const renderContactItem = ({ item }) => (
+    <TouchableOpacity 
+      style={styles.contactItem}
+      onPress={() => handleContactSelect(item.mobileNumber)}
+    >
+      <View style={styles.avatarPlaceholder}>
+        <Text style={styles.avatarText}>
+          {item.name.charAt(0).toUpperCase()}
+        </Text>
+      </View>
+      <View style={styles.contactInfo}>
+        <Text style={styles.contactName}>{item.name}</Text>
+        <Text style={styles.contactNumber}>{item.mobileNumber}</Text>
+      </View>
     </TouchableOpacity>
   );
 
@@ -211,7 +291,10 @@ export default function HomeScreen({ navigation }) {
           onRefresh={fetchConversations}
         />
 
-        <TouchableOpacity style={styles.fab}>
+        <TouchableOpacity 
+          style={styles.fab}
+          onPress={() => setContactListVisible(true)}
+        >
           <LinearGradient
             colors={['#24b5b0', '#1c7a76']}
             style={styles.fabGradient}
@@ -219,6 +302,37 @@ export default function HomeScreen({ navigation }) {
             <FontAwesome name="plus" size={24} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
+
+        <Modal
+          visible={contactListVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setContactListVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Contact</Text>
+                <TouchableOpacity 
+                  style={styles.modalClose}
+                  onPress={() => setContactListVisible(false)}
+                >
+                  <FontAwesome name="times" size={24} color="#fff" />
+                </TouchableOpacity>
+              </View>
+              {contactLoading ? (
+                <ActivityIndicator size="large" color="#1c7a76" />
+              ) : (
+                <FlatList
+                  data={contacts}
+                  renderItem={renderContactItem}
+                  keyExtractor={item => item.id}
+                  style={styles.contactList}
+                />
+              )}
+            </View>
+          </View>
+        </Modal>
 
         <Modal
           visible={focusModeVisible}
@@ -259,6 +373,7 @@ export default function HomeScreen({ navigation }) {
     </LinearGradient>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -510,5 +625,41 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  avatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#1c7a76',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '500',
+  },
+  contactInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  contactName: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  contactNumber: {
+    color: '#8e8e93',
+    fontSize: 14,
   },
 });

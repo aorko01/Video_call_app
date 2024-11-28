@@ -8,17 +8,23 @@ import {
   FlatList,
   StyleSheet,
   StatusBar,
+  Image,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
 const dummyMessages = [
   { id: '1', content: 'Hello! How are you?', sender: 'other' },
-  { id: '2', content: 'I’m good, thanks! How about you?', sender: 'me' },
-  { id: '3', content: 'Doing well, let’s catch up soon!', sender: 'other' },
+  { id: '2', content: 'Im good, thanks! How about you?', sender: 'me' },
+  { id: '3', content: 'Doing well, lets catch up soon!', sender: 'other' },
 ];
 
-export default function PersonalInbox() {
+export default function PersonalInbox({ 
+  conversationID, 
+  mobileNumber, 
+  navigation // Add navigation prop for back functionality
+}) {
   const [messages, setMessages] = useState(dummyMessages);
   const [input, setInput] = useState('');
 
@@ -40,7 +46,19 @@ export default function PersonalInbox() {
       <StatusBar barStyle="light-content" />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Chat with Alex</Text>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity 
+              style={styles.backButton} 
+              onPress={() => navigation.goBack()}
+            >
+              <FontAwesome5 name="arrow-left" size={20} color="#fff" />
+            </TouchableOpacity>
+            <Image 
+              source={{ uri: 'https://via.placeholder.com/50' }} // Replace with actual profile picture
+              style={styles.profilePicture}
+            />
+            <Text style={styles.headerTitle}>Chat with Alex</Text>
+          </View>
           <View style={styles.headerIcons}>
             <TouchableOpacity style={styles.iconButton}>
               <FontAwesome name="phone" size={20} color="#fff" />
@@ -104,6 +122,19 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    marginRight: 15,
+  },
+  profilePicture: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 15,
   },
   headerTitle: {
     color: '#fff',
