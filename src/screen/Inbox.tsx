@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
@@ -16,17 +16,22 @@ import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
 const dummyMessages = [
   { id: '1', content: 'Hello! How are you?', sender: 'other' },
-  { id: '2', content: 'Im good, thanks! How about you?', sender: 'me' },
-  { id: '3', content: 'Doing well, lets catch up soon!', sender: 'other' },
+  { id: '2', content: 'I’m good, thanks! How about you?', sender: 'me' },
+  { id: '3', content: 'Doing well, let’s catch up soon!', sender: 'other' },
 ];
 
-export default function PersonalInbox({ 
-  conversationID, 
-  mobileNumber, 
-  navigation // Add navigation prop for back functionality
-}) {
+export default function PersonalInbox({ route, navigation }) {
   const [messages, setMessages] = useState(dummyMessages);
   const [input, setInput] = useState('');
+
+  // Extracting conversationId from the route
+  const { conversationId } = route.params;
+
+
+  useEffect(() => {
+    console.log('Conversation ID:', conversationId);
+    // Fetch messages or perform other actions using conversationId here
+  }, [conversationId]);
 
   const handleSendMessage = () => {
     if (input.trim()) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -19,13 +19,13 @@ import Contacts from 'react-native-contacts';
 import axiosInstance from '../utils/axiosInstance';
 
 const FOCUS_MODES = [
-  { id: '1', title: '30 minutes', icon: 'clock-o' },
-  { id: '2', title: '1 hour', icon: 'hourglass-half' },
-  { id: '3', title: '2 hours', icon: 'hourglass-end' },
-  { id: '4', title: 'Until tomorrow', icon: 'moon-o' },
+  {id: '1', title: '30 minutes', icon: 'clock-o'},
+  {id: '2', title: '1 hour', icon: 'hourglass-half'},
+  {id: '3', title: '2 hours', icon: 'hourglass-end'},
+  {id: '4', title: 'Until tomorrow', icon: 'moon-o'},
 ];
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({navigation}) {
   const [activeTab, setActiveTab] = useState('chats');
   const [focusModeVisible, setFocusModeVisible] = useState(false);
   const [contactListVisible, setContactListVisible] = useState(false);
@@ -68,17 +68,17 @@ export default function HomeScreen({ navigation }) {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
           {
-            title: "Contacts Permission",
-            message: "This app needs access to your contacts.",
-            buttonNeutral: "Ask Me Later",
-            buttonNegative: "Cancel",
-            buttonPositive: "OK"
-          }
+            title: 'Contacts Permission',
+            message: 'This app needs access to your contacts.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
         );
         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
           loadContacts();
         } else {
-          console.log("Contacts permission denied");
+          console.log('Contacts permission denied');
         }
       } catch (err) {
         console.warn(err);
@@ -97,7 +97,7 @@ export default function HomeScreen({ navigation }) {
           .map(contact => ({
             id: contact.recordID,
             name: `${contact.givenName} ${contact.familyName}`.trim(),
-            mobileNumber: contact.phoneNumbers[0]?.number || ''
+            mobileNumber: contact.phoneNumbers[0]?.number || '',
           }));
         setContacts(formattedContacts);
         setContactLoading(false);
@@ -108,56 +108,58 @@ export default function HomeScreen({ navigation }) {
       });
   };
 
-  const formatTimestamp = (timestamp) => {
+  const formatTimestamp = timestamp => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true
+      hour12: true,
     });
   };
 
-  const handleContactSelect = (mobileNumber) => {
+  const handleContactSelect = mobileNumber => {
     setContactListVisible(false);
-    navigation.navigate('Inbox', { mobileNumber });
+    navigation.navigate('Inbox', {mobileNumber});
   };
 
-  const renderChatItem = ({ item }) => {
-    const conversationId = item._id.conversationWith;
-    const lastMessage = item.latestMessage;
-    const unreadCount = item.deliveredCount;
+  const renderChatItem = ({item}) => {
+    const conversationId = item._id;
+    console.log(conversationId);
+    const username = item.participants[0].username;
+    const lastMessage = item.lastMessage;
 
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.chatItem}
-        onPress={() => navigation.navigate('Chat', { conversationId })}
-      >
+        onPress={() => navigation.navigate('Inbox', {conversationId})}>
         <View style={styles.avatarContainer}>
           <View style={styles.avatarPlaceholder}>
             <Text style={styles.avatarText}>
-              {conversationId.charAt(0).toUpperCase()}
+              {username.charAt(0).toUpperCase()}
             </Text>
           </View>
           <View style={styles.onlineBadge} />
         </View>
-        
+
         <View style={styles.chatInfo}>
           <View style={styles.chatHeader}>
-            <Text style={styles.chatName}>User {conversationId.substring(0, 8)}</Text>
+            <Text style={styles.chatName}>{username}</Text>
             <Text style={styles.chatTime}>
               {formatTimestamp(lastMessage.timestamp)}
             </Text>
           </View>
           <View style={styles.chatFooter}>
-            <Text style={[
-              styles.lastMessage,
-              unreadCount > 0 && styles.lastMessageWithBadge
-            ]} numberOfLines={1}>
-              {lastMessage.messageContent.content}
+            <Text
+              style={[
+                styles.lastMessage,
+                item.messageCount > 0 && styles.lastMessageWithBadge,
+              ]}
+              numberOfLines={1}>
+              {lastMessage.content}
             </Text>
-            {unreadCount > 0 && (
+            {item.messageCount > 0 && (
               <View style={styles.unreadBadge}>
-                <Text style={styles.unreadText}>{unreadCount}</Text>
+                <Text style={styles.unreadText}>{item.messageCount}</Text>
               </View>
             )}
           </View>
@@ -166,33 +168,32 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  const renderFocusModeItem = ({ item }) => (
-    <TouchableOpacity 
+  const renderFocusModeItem = ({item}) => (
+    <TouchableOpacity
       style={[
         styles.focusModeItem,
-        activeFocusMode === item.id && styles.focusModeItemActive
+        activeFocusMode === item.id && styles.focusModeItemActive,
       ]}
-      onPress={() => setActiveFocusMode(item.id)}
-    >
-      <FontAwesome 
-        name={item.icon} 
-        size={24} 
-        color={activeFocusMode === item.id ? '#fff' : '#1c7a76'} 
+      onPress={() => setActiveFocusMode(item.id)}>
+      <FontAwesome
+        name={item.icon}
+        size={24}
+        color={activeFocusMode === item.id ? '#fff' : '#1c7a76'}
       />
-      <Text style={[
-        styles.focusModeText,
-        activeFocusMode === item.id && styles.focusModeTextActive
-      ]}>
+      <Text
+        style={[
+          styles.focusModeText,
+          activeFocusMode === item.id && styles.focusModeTextActive,
+        ]}>
         {item.title}
       </Text>
     </TouchableOpacity>
   );
 
-  const renderContactItem = ({ item }) => (
-    <TouchableOpacity 
+  const renderContactItem = ({item}) => (
+    <TouchableOpacity
       style={styles.contactItem}
-      onPress={() => handleContactSelect(item.mobileNumber)}
-    >
+      onPress={() => handleContactSelect(item.mobileNumber)}>
       <View style={styles.avatarPlaceholder}>
         <Text style={styles.avatarText}>
           {item.name.charAt(0).toUpperCase()}
@@ -217,10 +218,9 @@ export default function HomeScreen({ navigation }) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.retryButton}
-          onPress={fetchConversations}
-        >
+          onPress={fetchConversations}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -228,77 +228,75 @@ export default function HomeScreen({ navigation }) {
   }
 
   return (
-    <LinearGradient 
-      colors={['#1a2634', '#0f141c']} 
-      style={styles.container}
-    >
+    <LinearGradient colors={['#1a2634', '#0f141c']} style={styles.container}>
       <StatusBar barStyle="light-content" />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Messages</Text>
           <View style={styles.headerIcons}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.focusButton}
-              onPress={() => setFocusModeVisible(true)}
-            >
-              <FontAwesome 
-                name={activeFocusMode ? 'moon-o' : 'bell'} 
-                size={20} 
-                color={activeFocusMode ? '#1c7a76' : '#fff'} 
+              onPress={() => setFocusModeVisible(true)}>
+              <FontAwesome
+                name={activeFocusMode ? 'moon-o' : 'bell'}
+                size={20}
+                color={activeFocusMode ? '#1c7a76' : '#fff'}
               />
-              {activeFocusMode && (
-                <View style={styles.focusActiveDot} />
-              )}
+              {activeFocusMode && <View style={styles.focusActiveDot} />}
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.tabContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.tab, activeTab === 'chats' && styles.activeTab]}
-            onPress={() => setActiveTab('chats')}
-          >
-            <FontAwesome 
-              name="comments" 
-              size={20} 
-              color={activeTab === 'chats' ? '#1c7a76' : '#8e8e93'} 
+            onPress={() => setActiveTab('chats')}>
+            <FontAwesome
+              name="comments"
+              size={20}
+              color={activeTab === 'chats' ? '#1c7a76' : '#8e8e93'}
             />
-            <Text style={[styles.tabText, activeTab === 'chats' && styles.activeTabText]}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === 'chats' && styles.activeTabText,
+              ]}>
               Chats
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.tab, activeTab === 'calls' && styles.activeTab]}
-            onPress={() => setActiveTab('calls')}
-          >
-            <FontAwesome 
-              name="phone" 
-              size={20} 
-              color={activeTab === 'calls' ? '#1c7a76' : '#8e8e93'} 
+            onPress={() => setActiveTab('calls')}>
+            <FontAwesome
+              name="phone"
+              size={20}
+              color={activeTab === 'calls' ? '#1c7a76' : '#8e8e93'}
             />
-            <Text style={[styles.tabText, activeTab === 'calls' && styles.activeTabText]}>
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === 'calls' && styles.activeTabText,
+              ]}>
               Calls
             </Text>
           </TouchableOpacity>
         </View>
 
         <FlatList
-          data={conversations}
+          data={conversations} 
           renderItem={renderChatItem}
-          keyExtractor={item => item._id.conversationWith}
+          keyExtractor={item => item._id}
           style={styles.chatList}
           refreshing={loading}
           onRefresh={fetchConversations}
         />
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.fab}
-          onPress={() => setContactListVisible(true)}
-        >
+          onPress={() => setContactListVisible(true)}>
           <LinearGradient
             colors={['#24b5b0', '#1c7a76']}
-            style={styles.fabGradient}
-          >
+            style={styles.fabGradient}>
             <FontAwesome name="plus" size={24} color="#fff" />
           </LinearGradient>
         </TouchableOpacity>
@@ -307,16 +305,14 @@ export default function HomeScreen({ navigation }) {
           visible={contactListVisible}
           transparent={true}
           animationType="slide"
-          onRequestClose={() => setContactListVisible(false)}
-        >
+          onRequestClose={() => setContactListVisible(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Select Contact</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.modalClose}
-                  onPress={() => setContactListVisible(false)}
-                >
+                  onPress={() => setContactListVisible(false)}>
                   <FontAwesome name="times" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -338,16 +334,14 @@ export default function HomeScreen({ navigation }) {
           visible={focusModeVisible}
           transparent={true}
           animationType="slide"
-          onRequestClose={() => setFocusModeVisible(false)}
-        >
+          onRequestClose={() => setFocusModeVisible(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Focus Mode</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.modalClose}
-                  onPress={() => setFocusModeVisible(false)}
-                >
+                  onPress={() => setFocusModeVisible(false)}>
                   <FontAwesome name="times" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -360,10 +354,9 @@ export default function HomeScreen({ navigation }) {
                 keyExtractor={item => item.id}
                 style={styles.focusModeList}
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.applyButton}
-                onPress={() => setFocusModeVisible(false)}
-              >
+                onPress={() => setFocusModeVisible(false)}>
                 <Text style={styles.applyButtonText}>Apply Focus Mode</Text>
               </TouchableOpacity>
             </View>
@@ -373,7 +366,6 @@ export default function HomeScreen({ navigation }) {
     </LinearGradient>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -605,7 +597,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     top: '50%',
-    transform: [{ translateY: -12 }],
+    transform: [{translateY: -12}],
     backgroundColor: '#1c7a76',
     width: 24,
     height: 24,
