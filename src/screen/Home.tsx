@@ -12,11 +12,13 @@ import {
   ActivityIndicator,
   PermissionsAndroid,
   Platform,
+  AppState
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Contacts from 'react-native-contacts';
 import axiosInstance from '../utils/axiosInstance';
+import SocketService from '../utils/socketService';
 
 const FOCUS_MODES = [
   {id: '1', title: '30 minutes', icon: 'clock-o'},
@@ -35,9 +37,56 @@ export default function HomeScreen({navigation}) {
   const [loading, setLoading] = useState(true);
   const [contactLoading, setContactLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
 
   useEffect(() => {
+    // Setup socket connection when component mounts
+    const setupSocketConnection = async () => {
+      try {
+        await SocketService.connect();
+
+        // Listen for user status updates
+        SocketService.onUserStatus((status) => {
+          setOnlineUsers(prevUsers => {
+            const updatedUsers = new Set(prevUsers);
+            if (status.status === 'online') {
+              updatedUsers.add(status.userId);
+            } else {
+              updatedUsers.delete(status.userId);
+            }
+            return updatedUsers;
+          });
+        });
+
+        // Listen for new messages
+        SocketService.onMessageReceived((message) => {
+          // Update conversations when a new message is received
+          fetchConversations();
+        });
+      } catch (error) {
+        console.error('Socket connection error:', error);
+      }
+    };
+
+    setupSocketConnection();
+
+    // Handle app state changes
+    const handleAppStateChange = (nextAppState) => {
+      if (nextAppState === 'active') {
+        fetchConversations();
+      }
+    };
+
+    const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
+
+    // Initial fetch of conversations
     fetchConversations();
+
+    // Cleanup
+    return () => {
+      SocketService.disconnect();
+      appStateSubscription.remove();
+    };
   }, []);
 
   useEffect(() => {

@@ -9,29 +9,55 @@ import {
   StyleSheet,
   StatusBar,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
-
-const dummyMessages = [
-  { id: '1', content: 'Hello! How are you?', sender: 'other' },
-  { id: '2', content: 'I’m good, thanks! How about you?', sender: 'me' },
-  { id: '3', content: 'Doing well, let’s catch up soon!', sender: 'other' },
-];
+import axiosInstance from '../utils/axiosInstance'; // Assuming axiosInstance is exported from utils/axiosInstance.js
 
 export default function PersonalInbox({ route, navigation }) {
-  const [messages, setMessages] = useState(dummyMessages);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(true);
 
   // Extracting conversationId from the route
   const { conversationId } = route.params;
 
-
   useEffect(() => {
-    console.log('Conversation ID:', conversationId);
-    // Fetch messages or perform other actions using conversationId here
-  }, [conversationId]);
+    fetchMessages();
+  }, [page]);
+
+  const fetchMessages = async () => {
+    if (!hasNextPage) return; // Stop if no more pages to fetch
+    setLoading(true);
+    try {
+      const response = await axiosInstance.post('/message/get-messages', {
+        conversationId,
+        page,
+        limit: 20,
+      });
+
+      if (response.data.success) {
+        const newMessages = response.data.data.messages.map((msg) => ({
+          id: msg._id,
+          content: msg.messageContent.content,
+          sender: msg.senderId === conversationId ? 'me' : 'other',
+        }));
+
+        setMessages((prevMessages) => [...newMessages, ...prevMessages]);
+        setHasNextPage(response.data.data.pagination.hasNextPage);
+      } else {
+        console.error('Error fetching messages:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSendMessage = () => {
     if (input.trim()) {
@@ -45,6 +71,12 @@ export default function PersonalInbox({ route, navigation }) {
       <Text style={styles.messageText}>{item.content}</Text>
     </View>
   );
+
+  const handleLoadMore = () => {
+    if (hasNextPage && !loading) {
+      setPage((prevPage) => prevPage + 1);
+    }
+  };
 
   return (
     <LinearGradient colors={['#1a2634', '#0f141c']} style={styles.container}>
@@ -80,6 +112,10 @@ export default function PersonalInbox({ route, navigation }) {
           keyExtractor={(item) => item.id}
           style={styles.chatArea}
           contentContainerStyle={styles.chatContent}
+          inverted
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={loading && <ActivityIndicator size="small" color="#1c7a76" />}
         />
 
         <View style={styles.inputContainer}>

@@ -16,7 +16,7 @@ axiosInstance.interceptors.request.use(
   async (config) => {
     // Get the access token from AsyncStorage
     const accessToken = await AsyncStorage.getItem('accessToken');
-    // console.log("accessToken: " + accessToken)
+    console.log("accessToken: " + accessToken)
 
     // If access token is available, add it to headers
     if (accessToken) {
@@ -31,3 +31,9 @@ axiosInstance.interceptors.request.use(
 );
 
 export default axiosInstance;
+
+
+
+// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3NGFlYWYzNmFjM2JmNzczZGRiZjUwMyIsInVzZXJuYW1lIjoiYjIyMiIsImlhdCI6MTczMjk2MzA1OSwiZXhwIjoxNzM1NTU1MDU5fQ.zt21f_F_lpiEPQdljKXQRPIsLZh6IRqr58U5tokDfcU
+
+// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3NGFlYTBhNmFjM2JmNzczZGRiZjRjZSIsInVzZXJuYW1lIjoibmlyam9uYSIsImlhdCI6MTczMjk2MjgyNiwiZXhwIjoxNzM1NTU0ODI2fQ.xwt59-hEE8v28_8vkg7MTRWfYN33-ZiVT5Pl170-Lr4
