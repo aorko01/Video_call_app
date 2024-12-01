@@ -34,18 +34,18 @@ export default function PersonalInbox({ route, navigation }) {
 
     // Set up socket message listener
     SocketService.onMessageReceived((newMessage) => {
-      // Only add the message if it belongs to this conversation
-      if (newMessage.conversationId === conversationId) {
+      if (newMessage.conversation === conversationId) {
         setMessages((prevMessages) => [
           {
             id: newMessage._id,
             content: newMessage.messageContent.content,
-            sender: 'other',
+            sender: newMessage.self ? 'me' : 'other',
           },
           ...prevMessages,
         ]);
       }
     });
+    
 
     // Cleanup socket listener when component unmounts
     return () => {
@@ -63,14 +63,14 @@ export default function PersonalInbox({ route, navigation }) {
         page,
         limit: 20,
       });
-
+  
       if (response.data.success) {
         const newMessages = response.data.data.messages.map((msg) => ({
           id: msg._id,
           content: msg.messageContent.content,
-          sender: msg.senderId === conversationId ? 'me' : 'other',
+          sender: msg.self ? 'me' : 'other',
         }));
-
+  
         setMessages((prevMessages) => [...newMessages, ...prevMessages]);
         setHasNextPage(response.data.data.pagination.hasNextPage);
       } else {
@@ -82,7 +82,7 @@ export default function PersonalInbox({ route, navigation }) {
       setLoading(false);
     }
   };
-
+  
   const handleSendMessage = () => {
     if (input.trim()) {
       const receiverId = participant._id;
