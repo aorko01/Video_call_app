@@ -175,12 +175,13 @@ export default function HomeScreen({navigation}) {
     const conversationId = item._id;
     console.log(conversationId);
     const username = item.participants[0].username;
+    const participant= item.participants[0];
     const lastMessage = item.lastMessage;
 
     return (
       <TouchableOpacity
         style={styles.chatItem}
-        onPress={() => navigation.navigate('Inbox', {conversationId})}>
+        onPress={() => navigation.navigate('Inbox', {conversationId, participant})}>
         <View style={styles.avatarContainer}>
           <View style={styles.avatarPlaceholder}>
             <Text style={styles.avatarText}>

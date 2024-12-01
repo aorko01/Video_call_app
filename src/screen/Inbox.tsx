@@ -14,7 +14,8 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
-import axiosInstance from '../utils/axiosInstance'; // Assuming axiosInstance is exported from utils/axiosInstance.js
+import axiosInstance from '../utils/axiosInstance'; 
+import SocketService from '../utils/socketService';
 
 export default function PersonalInbox({ route, navigation }) {
   const [messages, setMessages] = useState([]);
@@ -24,11 +25,34 @@ export default function PersonalInbox({ route, navigation }) {
   const [hasNextPage, setHasNextPage] = useState(true);
 
   // Extracting conversationId from the route
-  const { conversationId } = route.params;
+  const { conversationId , participant } = route.params;
+  console.log('Participant:', participant);
 
   useEffect(() => {
+    // Fetch initial messages
     fetchMessages();
-  }, [page]);
+
+    // Set up socket message listener
+    SocketService.onMessageReceived((newMessage) => {
+      // Only add the message if it belongs to this conversation
+      if (newMessage.conversationId === conversationId) {
+        setMessages((prevMessages) => [
+          {
+            id: newMessage._id,
+            content: newMessage.messageContent.content,
+            sender: 'other',
+          },
+          ...prevMessages,
+        ]);
+      }
+    });
+
+    // Cleanup socket listener when component unmounts
+    return () => {
+      // Remove the message received listener
+      SocketService.socket?.off('messageReceived');
+    };
+  }, [page, conversationId]);
 
   const fetchMessages = async () => {
     if (!hasNextPage) return; // Stop if no more pages to fetch
@@ -61,7 +85,20 @@ export default function PersonalInbox({ route, navigation }) {
 
   const handleSendMessage = () => {
     if (input.trim()) {
-      setMessages([...messages, { id: Date.now().toString(), content: input, sender: 'me' }]);
+      const receiverId = participant._id;
+      console.log('Sending message to:', receiverId);
+      // Use SocketService to send message
+      SocketService.sendMessage(receiverId, input, conversationId);
+
+      // Optimistically add the message to the UI
+      setMessages([
+        {
+          id: Date.now().toString(),
+          content: input,
+          sender: 'me',
+        },
+        ...messages,
+      ]);
       setInput('');
     }
   };
